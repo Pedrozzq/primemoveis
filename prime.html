@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Móveis Planejados | Exclusive Design</title>
+    
+    <meta name="description" content="Prime Móveis Planejados. Transforme seu ambiente com projetos de alto padrão em Conselheiro Lafaiete e região.">
+    <meta name="theme-color" content="#050505">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- GSAP for robust DOM animations (No CORS issues) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Vanilla Tilt for Button Interactions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+
+    <style>
+        :root {
+            --gold-light: #fcf6ba;
+            --gold-mid: #d4af37;
+            --gold-dark: #aa771c;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #050505;
+            color: #ffffff;
+            overflow-x: hidden;
+            overflow-y: auto; /* mantém os botões acessíveis em telas menores */
+            perspective: 1200px;
+        }
+
+        /* Animated Dark Gradient Background */
+        .bg-animated {
+            background: linear-gradient(-45deg, #050505, #120e0a, #000000, #1a1510);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -3;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating 3D Item Scene */
+        #floating-scene {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            perspective: 1200px;
+        }
+
+        .floating-icon {
+            position: absolute;
+            display: block;
+            width: clamp(190px, 22vw, 360px);
+            height: auto;
+            object-fit: contain;
+            transform-style: preserve-3d;
+            transform-origin: center center;
+            will-change: transform, opacity, filter;
+            user-select: none;
+            opacity: 0;
+            filter:
+                drop-shadow(0 38px 45px rgba(0,0,0,0.90))
+                drop-shadow(0 0 34px rgba(212,175,55,0.58))
+                drop-shadow(0 0 65px rgba(252,246,186,0.18));
+        }
+
+        main {
+            position: relative;
+            z-index: 20;
+        }
+
+        .glass-panel {
+            position: relative;
+            z-index: 25;
+        }
+
+        @media (max-width: 640px) {
+            .floating-icon {
+                width: clamp(145px, 46vw, 220px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .floating-icon,
+            .bg-animated,
+            .text-gradient-gold,
+            .profile-img-container::after,
+            .brand-title-frame::before {
+                animation: none !important;
+            }
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            opacity: 0; /* Hidden initially for GSAP intro */
+            transform: translateY(50px);
+        }
+
+        /* Typography */
+        .font-brand { font-family: 'Cinzel', serif; }
+
+        .text-gradient-gold {
+            background: linear-gradient(to right, var(--gold-dark), var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% auto;
+            animation: shine 8s linear infinite;
+        }
+
+        @keyframes shine { to { background-position: 200% center; } }
+
+
+        /* Nome com efeito premium inspirado no aro animado da foto de perfil */
+        .brand-title-frame {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.55rem 1.45rem;
+            margin-bottom: 0.85rem;
+            border-radius: 999px;
+            isolation: isolate;
+        }
+
+        .brand-title-frame::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: inherit;
+            background: linear-gradient(45deg, var(--gold-dark), var(--gold-light), var(--gold-mid), var(--gold-dark));
+            background-size: 300% 300%;
+            z-index: -2;
+            animation: spin 5.5s linear infinite;
+            filter: drop-shadow(0 0 22px rgba(212,175,55,0.42));
+        }
+
+        .brand-title-frame::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(252,246,186,0.14), transparent 45%),
+                rgba(5, 5, 5, 0.88);
+            border: 1px solid rgba(252,246,186,0.14);
+            z-index: -1;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.10),
+                0 14px 30px rgba(0,0,0,0.45);
+        }
+
+        .brand-title {
+            position: relative;
+            margin: 0;
+            text-shadow:
+                0 0 18px rgba(212,175,55,0.35),
+                0 0 34px rgba(252,246,186,0.14);
+        }
+
+        .brand-title::after {
+            content: '';
+            position: absolute;
+            left: 8%;
+            right: 8%;
+            bottom: -7px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(252,246,186,0.9), rgba(212,175,55,0.9), transparent);
+            box-shadow: 0 0 14px rgba(212,175,55,0.55);
+        }
+
+        /* Custom Buttons */
+        .link-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .link-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: all 0.8s ease;
+        }
+
+        .link-btn:hover::before { left: 100%; }
+
+        .link-btn:hover {
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            border-color: rgba(212, 175, 55, 0.5);
+            transform: translateY(-3px) scale(1.02);
+            z-index: 10;
+        }
+
+        /* Social Colors */
+        .btn-whatsapp { background: linear-gradient(135deg, #0d241c 0%, #0a463e 100%); }
+        .btn-whatsapp:hover { background: linear-gradient(135deg, #107a6e 0%, #0d5e53 100%); }
+
+        .btn-instagram { background: linear-gradient(135deg, #2a101b 0%, #3d1225 100%); }
+        .btn-instagram:hover { background: linear-gradient(45deg, #c97629 0%, #b8522f 30%, #9c1b30 60%, #8a1163 100%); }
+
+        /* Profile Image Setup */
+        .profile-img-container {
+            position: relative;
+            display: inline-block;
+        }
+        .profile-img-container::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--gold-dark), var(--gold-light), var(--gold-mid), var(--gold-dark));
+            background-size: 300% 300%;
+            z-index: -1;
+            animation: spin 6s linear infinite;
+        }
+        @keyframes spin { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+        .anim-item { opacity: 0; transform: translateY(30px); }
+    </style>
+</head>
+<body class="antialiased flex items-center justify-center relative p-4 sm:p-6 w-full min-h-screen">
+
+    <div class="bg-animated"></div>
+    
+    <!-- This container will hold all the floating 3D icons -->
+    <div id="floating-scene"></div>
+
+    <main class="w-full max-w-[500px] mx-auto relative z-20 py-6">
+        
+        <div class="glass-panel rounded-[2.5rem] p-8 sm:px-10 sm:py-12 flex flex-col items-center text-center">
+            
+            <div class="profile-img-container mb-8 anim-item">
+                <img src="https://i.imgur.com/ggIsIYT.png" alt="Prime Móveis Planejados" class="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover border-[3px] border-[#0a0a0a] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            </div>
+
+            <div class="brand-title-frame anim-item">
+                <h1 class="brand-title text-3xl sm:text-4xl font-brand font-bold text-gradient-gold uppercase tracking-[0.12em] leading-tight">
+                    Prime
+                </h1>
+            </div>
+            <h2 class="text-sm sm:text-[15px] font-light tracking-[0.25em] uppercase text-gray-300 mb-8 anim-item leading-relaxed">
+                Transformando ambientes<br>com exclusividade
+            </h2>
+
+            <div class="w-full mb-10 anim-item">
+                <div class="inline-flex items-center justify-center gap-3 bg-[#0a0a0a]/70 px-5 py-2.5 rounded-full border border-[var(--gold-dark)]/30 backdrop-blur-md">
+                    <i class="fas fa-map-marker-alt text-[var(--gold-mid)] text-sm"></i>
+                    <p class="text-[13px] text-gray-200 font-medium tracking-wider uppercase">Conselheiro Lafaiete e região</p>
+                </div>
+            </div>
+
+            <div class="w-full space-y-6 relative z-20">
+                
+                <a href="https://wa.me/5531999999999" target="_blank" class="tilt link-btn btn-whatsapp w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
+                    <div class="flex items-center gap-5">
+                        <div class="bg-white/10 p-3 rounded-lg transition-all duration-300 group-hover:bg-white/20">
+                            <i class="fab fa-whatsapp text-[26px] text-green-400 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-brand font-bold text-lg tracking-wider text-gray-100 leading-none mb-1">Solicitar Projeto</p>
+                            <p class="text-xs text-green-300/80 font-medium tracking-wider uppercase">Atendimento via WhatsApp</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
+                </a>
+
+                <a href="https://instagram.com/prime.moveisplanejados" target="_blank" class="tilt link-btn btn-instagram w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
+                    <div class="flex items-center gap-5">
+                        <div class="bg-white/10 p-3 rounded-lg transition-all duration-300 group-hover:bg-white/20">
+                            <i class="fab fa-instagram text-[26px] text-pink-400 group-hover:text-white transition-colors"></i>
+                        </div>
+                         <div class="text-left">
+                            <p class="font-brand font-bold text-lg tracking-wider text-gray-100 leading-none mb-1">Portfólio Exclusivo</p>
+                             <p class="text-xs text-pink-300/80 font-medium tracking-wider uppercase">Siga-nos no Instagram</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
+                </a>
+
+            </div>
+            
+            <footer class="mt-12 text-center anim-item opacity-60 mix-blend-overlay">
+                 <p class="text-[10px] text-gray-500 font-medium tracking-[0.2em] uppercase">
+                    Prime Móveis © <span id="year"></span>
+                </p>
+            </footer>
+
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Efeito Tilt somente nos botões
+        VanillaTilt.init(document.querySelectorAll(".tilt"), {
+            max: 15,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.2,
+            scale: 1.03
+        });
+
+        // Animação 3D do item flutuando ao redor do site, sem cobrir os botões
+        const sceneContainer = document.getElementById('floating-scene');
+        const iconUrl = 'https://i.imgur.com/L3wQSZx.png';
+        let floatingItems = [];
+        let resizeTimer;
+
+        function random(min, max) {
+            return min + Math.random() * (max - min);
+        }
+
+        function getPanelRect() {
+            const panel = document.querySelector('.glass-panel');
+            return panel.getBoundingClientRect();
+        }
+
+        function getFixedPositions() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const panel = getPanelRect();
+            const isMobile = vw <= 640;
+
+            if (isMobile) {
+                return [
+                    { x: -76, y: 78, size: random(168, 218), opacity: 0.95, side: 'left' },
+                    { x: vw - 142, y: 74, size: random(168, 218), opacity: 0.96, side: 'right' },
+                    { x: -84, y: Math.min(vh - 215, panel.bottom - 10), size: random(150, 198), opacity: 0.88, side: 'left' }
+                ];
+            }
+
+            return [
+                { x: Math.max(-118, panel.left - 300), y: Math.max(18, panel.top + 18), size: random(270, 355), opacity: 0.98, side: 'left' },
+                { x: Math.min(vw - 250, panel.right + 56), y: Math.max(28, panel.top + 18), size: random(265, 350), opacity: 0.98, side: 'right' },
+                { x: Math.max(-135, panel.left - 335), y: Math.min(vh - 335, panel.top + 330), size: random(245, 325), opacity: 0.90, side: 'left' },
+                { x: Math.min(vw - 280, panel.right + 18), y: Math.min(vh - 345, panel.top + 360), size: random(245, 325), opacity: 0.91, side: 'right' }
+            ];
+        }
+
+        function createFloatingItems() {
+            sceneContainer.innerHTML = '';
+            floatingItems = [];
+
+            const positions = getFixedPositions();
+
+            positions.forEach((pos, i) => {
+                const img = document.createElement('img');
+                img.src = iconUrl;
+                img.alt = '';
+                img.setAttribute('aria-hidden', 'true');
+                img.className = 'floating-icon';
+                img.style.width = `${pos.size}px`;
+                sceneContainer.appendChild(img);
+
+                floatingItems.push({ el: img, ...pos });
+
+                const startX = pos.side === 'left' ? pos.x - 140 : pos.side === 'right' ? pos.x + 160 : pos.x;
+                const startY = pos.side === 'top' ? pos.y - 120 : pos.side === 'bottom' ? pos.y + 120 : pos.y;
+
+                gsap.set(img, {
+                    x: startX,
+                    y: startY,
+                    z: random(-160, 220),
+                    rotationX: random(-38, 38),
+                    rotationY: random(-48, 48),
+                    rotationZ: random(-18, 18),
+                    scale: random(0.94, 1.06),
+                    opacity: 0
+                });
+
+                gsap.to(img, {
+                    x: pos.x,
+                    y: pos.y,
+                    opacity: pos.opacity,
+                    duration: random(1.1, 1.9),
+                    delay: i * 0.08,
+                    ease: 'power3.out',
+                    onComplete: () => startItemFloat(img, pos)
+                });
+            });
+        }
+
+        function startItemFloat(img, pos) {
+            const isMobile = window.innerWidth <= 640;
+            const horizontalLimit = isMobile ? 16 : 42;
+            const verticalLimit = isMobile ? 24 : 52;
+
+            gsap.to(img, {
+                x: pos.x + random(-horizontalLimit, horizontalLimit),
+                y: pos.y + random(-verticalLimit, verticalLimit),
+                z: `+=${random(-90, 90)}`,
+                rotationX: `+=${random(-96, 96)}`,
+                rotationY: `+=${random(-145, 145)}`,
+                rotationZ: `+=${random(-34, 34)}`,
+                duration: random(6.6, 9.8),
+                repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut'
+            });
+
+            gsap.to(img, {
+                scale: random(1.04, 1.22),
+                opacity: Math.min(1, pos.opacity + 0.06),
+                duration: random(4.2, 6.8),
+                repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut'
+            });
+        }
+
+        function startIntro() {
+            const tl = gsap.timeline();
+
+            tl.to('.glass-panel', {
+                opacity: 1,
+                y: 0,
+                duration: 1.2,
+                ease: 'power3.out'
+            }, 0.28);
+
+            tl.to('.anim-item', {
+                opacity: 1,
+                y: 0,
+                duration: 0.75,
+                stagger: 0.13,
+                ease: 'back.out(1.45)'
+            }, 0.72);
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (window.innerWidth <= 768) return;
+
+            const mouseX = (e.clientX / window.innerWidth - 0.5) * 18;
+            const mouseY = (e.clientY / window.innerHeight - 0.5) * 18;
+
+            gsap.to('#floating-scene', {
+                rotationY: mouseX,
+                rotationX: -mouseY,
+                duration: 1.2,
+                ease: 'power2.out'
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                gsap.killTweensOf('.floating-icon');
+                createFloatingItems();
+            }, 250);
+        });
+
+        window.addEventListener('load', () => {
+            createFloatingItems();
+            startIntro();
+        });
+    </script>
+</body>
+</html>
