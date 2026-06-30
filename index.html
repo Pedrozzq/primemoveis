@@ -8,21 +8,16 @@
     <meta name="description" content="Prime Móveis Planejados. Transforme seu ambiente com projetos de alto padrão em Conselheiro Lafaiete e região.">
     <meta name="theme-color" content="#050505">
     
-    <!-- Tailwind CSS -->
+    <!-- Bibliotecas e Estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- GSAP for robust DOM animations (No CORS issues) -->
+    <!-- Bibliotecas 3D e Animação (Carregamento Síncrono Seguro) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    
-    <!-- Vanilla Tilt for Button Interactions -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
 
     <style>
@@ -33,102 +28,43 @@
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            min-height: 100dvh;
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
             font-family: 'Montserrat', sans-serif;
             background-color: #050505;
             color: #ffffff;
-            overflow-x: hidden;
-            overflow-y: auto; /* mantém os botões acessíveis em telas menores */
-            perspective: 1200px;
+            overflow: hidden; /* Trava o scroll para imersão total */
         }
 
-        /* Animated Dark Gradient Background */
-        .bg-animated {
-            background: linear-gradient(-45deg, #050505, #120e0a, #000000, #1a1510);
-            background-size: 400% 400%;
-            animation: gradientBG 20s ease infinite;
+        /* Fundo base caso o 3D demore um segundo para carregar */
+        .bg-base {
+            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -3;
+            z-index: -2;
         }
 
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Floating 3D Item Scene */
-        #floating-scene {
+        /* Canvas onde a mágica 3D acontece */
+        #bg-canvas {
             position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-            transform-style: preserve-3d;
-            perspective: 1200px;
-        }
-
-        .floating-icon {
-            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -1;
+            pointer-events: none; /* Permite que os cliques passem para os botões */
             display: block;
-            width: clamp(190px, 22vw, 360px);
-            height: auto;
-            object-fit: contain;
-            transform-style: preserve-3d;
-            transform-origin: center center;
-            will-change: transform, opacity, filter;
-            user-select: none;
-            opacity: 0;
-            filter:
-                drop-shadow(0 38px 45px rgba(0,0,0,0.90))
-                drop-shadow(0 0 34px rgba(212,175,55,0.58))
-                drop-shadow(0 0 65px rgba(252,246,186,0.18));
         }
 
-        main {
-            position: relative;
-            z-index: 20;
-        }
-
+        /* Painel principal de vidro */
         .glass-panel {
-            position: relative;
-            z-index: 25;
-        }
-
-        @media (max-width: 640px) {
-            .floating-icon {
-                width: clamp(145px, 46vw, 220px);
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .floating-icon,
-            .bg-animated,
-            .text-gradient-gold,
-            .profile-img-container::after,
-            .brand-title-frame::before {
-                animation: none !important;
-            }
-        }
-
-        /* Glassmorphism Panel */
-        .glass-panel {
-            background: rgba(10, 10, 10, 0.65);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
+            background: rgba(10, 10, 10, 0.45);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            opacity: 0; /* Hidden initially for GSAP intro */
-            transform: translateY(50px);
+            opacity: 0; /* Escondido no início para ser animado pelo GSAP */
+            transform: translateY(40px);
         }
 
-        /* Typography */
         .font-brand { font-family: 'Cinzel', serif; }
 
         .text-gradient-gold {
@@ -142,71 +78,10 @@
 
         @keyframes shine { to { background-position: 200% center; } }
 
-
-        /* Nome com efeito premium inspirado no aro animado da foto de perfil */
-        .brand-title-frame {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.55rem 1.45rem;
-            margin-bottom: 0.85rem;
-            border-radius: 999px;
-            isolation: isolate;
-        }
-
-        .brand-title-frame::before {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            border-radius: inherit;
-            background: linear-gradient(45deg, var(--gold-dark), var(--gold-light), var(--gold-mid), var(--gold-dark));
-            background-size: 300% 300%;
-            z-index: -2;
-            animation: spin 5.5s linear infinite;
-            filter: drop-shadow(0 0 22px rgba(212,175,55,0.42));
-        }
-
-        .brand-title-frame::after {
-            content: '';
-            position: absolute;
-            inset: 1px;
-            border-radius: inherit;
-            background:
-                radial-gradient(circle at 50% 0%, rgba(252,246,186,0.14), transparent 45%),
-                rgba(5, 5, 5, 0.88);
-            border: 1px solid rgba(252,246,186,0.14);
-            z-index: -1;
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.10),
-                0 14px 30px rgba(0,0,0,0.45);
-        }
-
-        .brand-title {
-            position: relative;
-            margin: 0;
-            text-shadow:
-                0 0 18px rgba(212,175,55,0.35),
-                0 0 34px rgba(252,246,186,0.14);
-        }
-
-        .brand-title::after {
-            content: '';
-            position: absolute;
-            left: 8%;
-            right: 8%;
-            bottom: -7px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(252,246,186,0.9), rgba(212,175,55,0.9), transparent);
-            box-shadow: 0 0 14px rgba(212,175,55,0.55);
-        }
-
-        /* Custom Buttons */
         .link-btn {
             position: relative;
             overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform-style: preserve-3d;
+            transition: all 0.5s ease;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
@@ -214,281 +89,320 @@
             content: '';
             position: absolute;
             top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
             transition: all 0.8s ease;
         }
-
+        
         .link-btn:hover::before { left: 100%; }
-
+        
         .link-btn:hover {
             box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-            border-color: rgba(212, 175, 55, 0.5);
+            border-color: rgba(212, 175, 55, 0.3);
             transform: translateY(-3px) scale(1.02);
-            z-index: 10;
         }
 
-        /* Social Colors */
         .btn-whatsapp { background: linear-gradient(135deg, #0d241c 0%, #0a463e 100%); }
-        .btn-whatsapp:hover { background: linear-gradient(135deg, #107a6e 0%, #0d5e53 100%); }
-
         .btn-instagram { background: linear-gradient(135deg, #2a101b 0%, #3d1225 100%); }
-        .btn-instagram:hover { background: linear-gradient(45deg, #c97629 0%, #b8522f 30%, #9c1b30 60%, #8a1163 100%); }
 
-        /* Profile Image Setup */
         .profile-img-container {
             position: relative;
             display: inline-block;
         }
+        
         .profile-img-container::after {
             content: '';
             position: absolute;
-            inset: -4px;
+            inset: -3px;
             border-radius: 50%;
             background: linear-gradient(45deg, var(--gold-dark), var(--gold-light), var(--gold-mid), var(--gold-dark));
             background-size: 300% 300%;
             z-index: -1;
             animation: spin 6s linear infinite;
         }
-        @keyframes spin { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+        
+        @keyframes spin { 100% { background-position: 100% 50%; } }
 
-        .anim-item { opacity: 0; transform: translateY(30px); }
+        .anim-item { opacity: 0; transform: translateY(20px); }
     </style>
 </head>
-<body class="antialiased flex items-center justify-center relative p-4 sm:p-6 w-full min-h-screen">
+<body class="antialiased flex items-center justify-center relative p-4 sm:p-6">
 
-    <div class="bg-animated"></div>
-    
-    <!-- This container will hold all the floating 3D icons -->
-    <div id="floating-scene"></div>
+    <!-- Cenário de Fundo -->
+    <div class="bg-base"></div>
+    <canvas id="bg-canvas"></canvas>
 
-    <main class="w-full max-w-[500px] mx-auto relative z-20 py-6">
+    <main class="w-full max-w-[450px] mx-auto relative z-10">
         
-        <div class="glass-panel rounded-[2.5rem] p-8 sm:px-10 sm:py-12 flex flex-col items-center text-center">
+        <div class="glass-panel rounded-[2rem] p-8 sm:px-10 sm:py-10 flex flex-col items-center text-center">
             
-            <div class="profile-img-container mb-8 anim-item">
-                <img src="https://i.imgur.com/ggIsIYT.png" alt="Prime Móveis Planejados" class="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover border-[3px] border-[#0a0a0a] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <div class="profile-img-container mb-6 anim-item">
+                <img src="https://i.imgur.com/ggIsIYT.png" alt="Prime Móveis Planejados" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-[2px] border-[#0a0a0a] shadow-2xl">
             </div>
 
-            <div class="brand-title-frame anim-item">
-                <h1 class="brand-title text-3xl sm:text-4xl font-brand font-bold text-gradient-gold uppercase tracking-[0.12em] leading-tight">
-                    Prime
-                </h1>
-            </div>
-            <h2 class="text-sm sm:text-[15px] font-light tracking-[0.25em] uppercase text-gray-300 mb-8 anim-item leading-relaxed">
-                Transformando ambientes<br>com exclusividade
+            <h1 class="text-3xl sm:text-4xl font-brand font-bold mb-2 text-gradient-gold uppercase tracking-[0.12em] anim-item">
+                Prime
+            </h1>
+            <h2 class="text-xs sm:text-sm font-light tracking-[0.25em] uppercase text-gray-300 mb-8 anim-item">
+                Design • Qualidade • Acabamento
             </h2>
 
-            <div class="w-full mb-10 anim-item">
-                <div class="inline-flex items-center justify-center gap-3 bg-[#0a0a0a]/70 px-5 py-2.5 rounded-full border border-[var(--gold-dark)]/30 backdrop-blur-md">
+            <div class="w-full mb-8 anim-item">
+                <div class="inline-flex items-center justify-center gap-3 bg-black/40 px-5 py-2 rounded-full border border-white/5 backdrop-blur-sm">
                     <i class="fas fa-map-marker-alt text-[var(--gold-mid)] text-sm"></i>
-                    <p class="text-[13px] text-gray-200 font-medium tracking-wider uppercase">Conselheiro Lafaiete e região</p>
+                    <p class="text-[12px] text-gray-300 font-medium tracking-wider uppercase">Conselheiro Lafaiete</p>
                 </div>
             </div>
 
-            <div class="w-full space-y-6 relative z-20">
-                
+            <!-- Botões de Ação -->
+            <div class="w-full space-y-4 relative z-20">
                 <a href="https://wa.me/5531999999999" target="_blank" class="tilt link-btn btn-whatsapp w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
-                    <div class="flex items-center gap-5">
-                        <div class="bg-white/10 p-3 rounded-lg transition-all duration-300 group-hover:bg-white/20">
-                            <i class="fab fa-whatsapp text-[26px] text-green-400 group-hover:text-white transition-colors"></i>
-                        </div>
-                        <div class="text-left">
-                            <p class="font-brand font-bold text-lg tracking-wider text-gray-100 leading-none mb-1">Solicitar Projeto</p>
-                            <p class="text-xs text-green-300/80 font-medium tracking-wider uppercase">Atendimento via WhatsApp</p>
-                        </div>
+                    <div class="flex items-center gap-4">
+                        <i class="fab fa-whatsapp text-2xl text-green-400 group-hover:text-white transition-colors"></i>
+                        <span class="font-brand font-bold text-[15px] tracking-widest uppercase text-gray-100">Solicitar Orçamento</span>
                     </div>
                     <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
                 </a>
 
                 <a href="https://instagram.com/prime.moveisplanejados" target="_blank" class="tilt link-btn btn-instagram w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
-                    <div class="flex items-center gap-5">
-                        <div class="bg-white/10 p-3 rounded-lg transition-all duration-300 group-hover:bg-white/20">
-                            <i class="fab fa-instagram text-[26px] text-pink-400 group-hover:text-white transition-colors"></i>
-                        </div>
-                         <div class="text-left">
-                            <p class="font-brand font-bold text-lg tracking-wider text-gray-100 leading-none mb-1">Portfólio Exclusivo</p>
-                             <p class="text-xs text-pink-300/80 font-medium tracking-wider uppercase">Siga-nos no Instagram</p>
-                        </div>
+                    <div class="flex items-center gap-4">
+                        <i class="fab fa-instagram text-2xl text-pink-400 group-hover:text-white transition-colors"></i>
+                         <span class="font-brand font-bold text-[15px] tracking-widest uppercase text-gray-100">Ver Projetos</span>
                     </div>
                     <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
                 </a>
-
             </div>
             
-            <footer class="mt-12 text-center anim-item opacity-60 mix-blend-overlay">
-                 <p class="text-[10px] text-gray-500 font-medium tracking-[0.2em] uppercase">
-                    Prime Móveis © <span id="year"></span>
-                </p>
+            <footer class="mt-10 text-center anim-item opacity-50">
+                 <p class="text-[9px] text-gray-400 font-medium tracking-[0.2em] uppercase">Prime Móveis © <span id="year"></span></p>
             </footer>
-
         </div>
     </main>
 
     <script>
+        // Atualiza o ano automaticamente
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Efeito Tilt somente nos botões
-        VanillaTilt.init(document.querySelectorAll(".tilt"), {
-            max: 15,
-            speed: 400,
-            glare: true,
-            "max-glare": 0.2,
-            scale: 1.03
-        });
+        // Variáveis globais de controle
+        let scene, camera, renderer;
+        let pieces = []; 
+        let lines = [];
+        let drawer; // Peça específica para animar gaveta
+        let ledLight;
+        let is3DReady = false;
 
-        // Animação 3D do item flutuando ao redor do site, sem cobrir os botões
-        const sceneContainer = document.getElementById('floating-scene');
-        const iconUrl = 'https://i.imgur.com/L3wQSZx.png';
-        let floatingItems = [];
-        let resizeTimer;
+        // Aguarda toda a página carregar para garantir que o GSAP e o ThreeJS estão ativos
+        window.onload = function() {
+            try {
+                // Inicializa o efeito Tilt nos botões
+                if (window.VanillaTilt) {
+                    VanillaTilt.init(document.querySelectorAll(".tilt"), {
+                        max: 10, speed: 400, glare: true, "max-glare": 0.1, scale: 1.02
+                    });
+                }
 
-        function random(min, max) {
-            return min + Math.random() * (max - min);
-        }
+                // Inicia o ambiente 3D
+                init3DEnvironment();
+                
+                // Inicia as animações
+                startAnimations();
+            } catch (error) {
+                console.error("Erro ao iniciar a experiência 3D:", error);
+                // Fallback: Revela a interface HTML mesmo se o 3D falhar
+                gsap.to('.glass-panel', { opacity: 1, y: 0, duration: 1 });
+                gsap.to('.anim-item', { opacity: 1, y: 0, duration: 1, stagger: 0.1 });
+            }
+        };
 
-        function getPanelRect() {
-            const panel = document.querySelector('.glass-panel');
-            return panel.getBoundingClientRect();
-        }
+        function init3DEnvironment() {
+            const canvas = document.getElementById('bg-canvas');
+            
+            // Configuração do Renderizador (Otimizado para funcionar em qualquer dispositivo)
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+            
+            scene = new THREE.Scene();
+            
+            // Câmera 
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(7, 4, 9);
+            camera.lookAt(0, 1.5, 0);
 
-        function getFixedPositions() {
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            const panel = getPanelRect();
-            const isMobile = vw <= 640;
+            // --- Iluminação de Showroom Premium ---
+            const ambient = new THREE.AmbientLight(0xffeedd, 0.5); // Luz suave quente
+            scene.add(ambient);
 
-            if (isMobile) {
-                return [
-                    { x: -76, y: 78, size: random(168, 218), opacity: 0.95, side: 'left' },
-                    { x: vw - 142, y: 74, size: random(168, 218), opacity: 0.96, side: 'right' },
-                    { x: -84, y: Math.min(vh - 215, panel.bottom - 10), size: random(150, 198), opacity: 0.88, side: 'left' }
-                ];
+            const spot1 = new THREE.SpotLight(0xffffff, 1.2);
+            spot1.position.set(5, 10, 5);
+            spot1.angle = Math.PI / 3;
+            scene.add(spot1);
+
+            const spot2 = new THREE.SpotLight(0xaaccff, 0.8);
+            spot2.position.set(-5, 5, 5);
+            scene.add(spot2);
+
+            // Fita de LED interna da prateleira (Começa apagada)
+            ledLight = new THREE.PointLight(0xffaa00, 0, 8); 
+            ledLight.position.set(0, 2.5, 0);
+            scene.add(ledLight);
+
+            // --- Materiais ---
+            // Usamos materiais opacos (transparent: false) para evitar bugs em celulares
+            const matWood = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.7, metalness: 0.1 });
+            const matBlack = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.2 });
+            
+            // Material das linhas de projeto (fio de ouro)
+            const matLine = new THREE.LineBasicMaterial({ color: 0xd4af37 });
+
+            function createModule(w, h, d, x, y, z, material, isDrawer = false) {
+                const group = new THREE.Group();
+                group.position.set(x, y, z);
+
+                // Parte sólida do móvel
+                const geo = new THREE.BoxGeometry(w, h, d);
+                const mesh = new THREE.Mesh(geo, material);
+                
+                // Oculta o objeto sólido inicialmente escalando para 0
+                // É mais seguro e performático que usar opacity em WebGL
+                mesh.scale.set(0.001, 0.001, 0.001); 
+                group.add(mesh);
+
+                // Linhas do projeto (Wireframe) para animação
+                const edges = new THREE.EdgesGeometry(geo);
+                const line = new THREE.LineSegments(edges, matLine);
+                // Linhas começam escaladas em 0 também
+                line.scale.set(0.001, 0.001, 0.001);
+                group.add(line);
+
+                scene.add(group);
+                
+                pieces.push(mesh);
+                lines.push(line);
+                
+                if (isDrawer) {
+                    drawer = { group: group, mesh: mesh, startZ: z };
+                }
             }
 
-            return [
-                { x: Math.max(-118, panel.left - 300), y: Math.max(18, panel.top + 18), size: random(270, 355), opacity: 0.98, side: 'left' },
-                { x: Math.min(vw - 250, panel.right + 56), y: Math.max(28, panel.top + 18), size: random(265, 350), opacity: 0.98, side: 'right' },
-                { x: Math.max(-135, panel.left - 335), y: Math.min(vh - 335, panel.top + 330), size: random(245, 325), opacity: 0.90, side: 'left' },
-                { x: Math.min(vw - 280, panel.right + 18), y: Math.min(vh - 345, panel.top + 360), size: random(245, 325), opacity: 0.91, side: 'right' }
-            ];
+            // --- Montagem do Ambiente (Guarda-roupa / Estante Planejada) ---
+            
+            // Base Inferior (Preto Fosco)
+            createModule(4.2, 0.3, 1.6, 0, 0.15, 0, matBlack);
+            
+            // Gavetão Esquerdo (Madeira) -> Esta é a gaveta que será aberta na animação
+            createModule(1.9, 0.7, 1.5, -1.0, 0.7, 0, matWood, true); 
+            
+            // Gavetão Direito (Madeira)
+            createModule(1.9, 0.7, 1.5, 1.0, 0.7, 0, matWood);
+
+            // Painel de Fundo Ripado Simulado (Madeira)
+            createModule(4.2, 3.5, 0.1, 0, 2.9, -0.75, matWood);
+
+            // Prateleira Superior (Preto Fosco)
+            createModule(4.2, 0.15, 1.2, 0, 4.0, -0.2, matBlack);
+
+            // Armário Torre Lateral (Preto Fosco)
+            createModule(1.2, 4.5, 1.6, -2.7, 2.25, 0, matBlack);
+
+            // Armário Torre Lateral Direito (Madeira)
+            createModule(0.8, 4.5, 1.6, 2.5, 2.25, 0, matWood);
+
+            is3DReady = true;
+
+            // Inicia o renderizador contínuo
+            requestAnimationFrame(renderLoop);
         }
 
-        function createFloatingItems() {
-            sceneContainer.innerHTML = '';
-            floatingItems = [];
+        function startAnimations() {
+            // 1. Animação da Interface HTML (Cartão e Botões)
+            const uiTl = gsap.timeline();
+            uiTl.to('.glass-panel', { opacity: 1, y: 0, duration: 1.5, ease: "power3.out", delay: 0.5 })
+                .to('.anim-item', { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "back.out(1.5)" }, "-=0.5");
 
-            const positions = getFixedPositions();
+            if (!is3DReady) return;
 
-            positions.forEach((pos, i) => {
-                const img = document.createElement('img');
-                img.src = iconUrl;
-                img.alt = '';
-                img.setAttribute('aria-hidden', 'true');
-                img.className = 'floating-icon';
-                img.style.width = `${pos.size}px`;
-                sceneContainer.appendChild(img);
+            // 2. Animação 3D da Montagem (Em Loop Contínuo)
+            const tl3d = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
 
-                floatingItems.push({ el: img, ...pos });
-
-                const startX = pos.side === 'left' ? pos.x - 140 : pos.side === 'right' ? pos.x + 160 : pos.x;
-                const startY = pos.side === 'top' ? pos.y - 120 : pos.side === 'bottom' ? pos.y + 120 : pos.y;
-
-                gsap.set(img, {
-                    x: startX,
-                    y: startY,
-                    z: random(-160, 220),
-                    rotationX: random(-38, 38),
-                    rotationY: random(-48, 48),
-                    rotationZ: random(-18, 18),
-                    scale: random(0.94, 1.06),
-                    opacity: 0
-                });
-
-                gsap.to(img, {
-                    x: pos.x,
-                    y: pos.y,
-                    opacity: pos.opacity,
-                    duration: random(1.1, 1.9),
-                    delay: i * 0.08,
-                    ease: 'power3.out',
-                    onComplete: () => startItemFloat(img, pos)
-                });
-            });
-        }
-
-        function startItemFloat(img, pos) {
-            const isMobile = window.innerWidth <= 640;
-            const horizontalLimit = isMobile ? 16 : 42;
-            const verticalLimit = isMobile ? 24 : 52;
-
-            gsap.to(img, {
-                x: pos.x + random(-horizontalLimit, horizontalLimit),
-                y: pos.y + random(-verticalLimit, verticalLimit),
-                z: `+=${random(-90, 90)}`,
-                rotationX: `+=${random(-96, 96)}`,
-                rotationY: `+=${random(-145, 145)}`,
-                rotationZ: `+=${random(-34, 34)}`,
-                duration: random(6.6, 9.8),
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut'
-            });
-
-            gsap.to(img, {
-                scale: random(1.04, 1.22),
-                opacity: Math.min(1, pos.opacity + 0.06),
-                duration: random(4.2, 6.8),
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut'
-            });
-        }
-
-        function startIntro() {
-            const tl = gsap.timeline();
-
-            tl.to('.glass-panel', {
-                opacity: 1,
-                y: 0,
+            // FASE 1: O Projeto (Surgem as linhas arquitetônicas)
+            tl3d.to(lines.map(l => l.scale), {
+                x: 1, y: 1, z: 1,
                 duration: 1.2,
-                ease: 'power3.out'
-            }, 0.28);
+                stagger: 0.1,
+                ease: "power2.out"
+            }, 0);
 
-            tl.to('.anim-item', {
-                opacity: 1,
-                y: 0,
-                duration: 0.75,
-                stagger: 0.13,
-                ease: 'back.out(1.45)'
-            }, 0.72);
+            // FASE 2: A Construção (Móveis sólidos preenchem o projeto)
+            tl3d.to(pieces.map(p => p.scale), {
+                x: 1, y: 1, z: 1,
+                duration: 1.5,
+                stagger: 0.15,
+                ease: "back.out(1.2)"
+            }, 1.0);
+
+            // Some com as linhas de projeto para ficar o móvel real
+            tl3d.to(lines.map(l => l.scale), {
+                x: 0.001, y: 0.001, z: 0.001,
+                duration: 0.5
+            }, 2.0);
+
+            // FASE 3: Acabamento Premium (Abre a gaveta e acende o LED)
+            if (drawer) {
+                // Simula o deslizamento com amortecedor
+                tl3d.to(drawer.group.position, {
+                    z: drawer.startZ + 0.6,
+                    duration: 1.2,
+                    ease: "power2.inOut"
+                }, 3.0);
+            }
+            tl3d.to(ledLight, { intensity: 1.5, duration: 1 }, 3.0);
+
+            // FASE 4: Pausa contemplativa, depois fecha e reseta
+            if (drawer) {
+                // Fecha a gaveta suavemente
+                tl3d.to(drawer.group.position, {
+                    z: drawer.startZ,
+                    duration: 1.0,
+                    ease: "power2.inOut"
+                }, 6.0);
+            }
+            tl3d.to(ledLight, { intensity: 0, duration: 1 }, 6.0);
+
+            // Desmonta tudo em escala 0 para o loop reiniciar
+            tl3d.to(pieces.map(p => p.scale), {
+                x: 0.001, y: 0.001, z: 0.001,
+                duration: 1.0,
+                ease: "power2.in"
+            }, 7.0);
         }
 
-        document.addEventListener('mousemove', (e) => {
-            if (window.innerWidth <= 768) return;
+        let time = 0;
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+            time += 0.003;
 
-            const mouseX = (e.clientX / window.innerWidth - 0.5) * 18;
-            const mouseY = (e.clientY / window.innerHeight - 0.5) * 18;
+            // Movimento cinematográfico rotacionando suavemente em volta do ambiente
+            if (camera) {
+                const radius = 9;
+                camera.position.x = Math.sin(time) * 4;
+                camera.position.z = radius + Math.cos(time * 0.8) * 1.5;
+                camera.lookAt(0, 1.5, 0);
+            }
 
-            gsap.to('#floating-scene', {
-                rotationY: mouseX,
-                rotationX: -mouseY,
-                duration: 1.2,
-                ease: 'power2.out'
-            });
-        });
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
 
+        // Responsividade do 3D ao redimensionar a tela
         window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                gsap.killTweensOf('.floating-icon');
-                createFloatingItems();
-            }, 250);
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         });
 
-        window.addEventListener('load', () => {
-            createFloatingItems();
-            startIntro();
-        });
     </script>
 </body>
 </html>
