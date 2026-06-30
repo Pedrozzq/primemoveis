@@ -4,18 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prime Móveis Planejados | Exclusive Design</title>
-    
     <meta name="description" content="Prime Móveis Planejados. Transforme seu ambiente com projetos de alto padrão em Conselheiro Lafaiete e região.">
     <meta name="theme-color" content="#050505">
-    
-    <!-- Bibliotecas e Estilos -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Bibliotecas 3D e Animação (Carregamento Síncrono Seguro) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
@@ -27,42 +23,40 @@
             --gold-dark: #aa771c;
         }
 
-        body, html {
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
             margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
+            width: 100%; height: 100%;
             font-family: 'Montserrat', sans-serif;
-            background-color: #050505;
-            color: #ffffff;
-            overflow: hidden; /* Trava o scroll para imersão total */
+            background: #050505;
+            color: #fff;
+            overflow: hidden;
         }
 
-        /* Fundo base caso o 3D demore um segundo para carregar */
-        .bg-base {
-            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -2;
-        }
-
-        /* Canvas onde a mágica 3D acontece */
         #bg-canvas {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
-            z-index: -1;
-            pointer-events: none; /* Permite que os cliques passem para os botões */
+            z-index: 0;
+            pointer-events: none;
             display: block;
         }
 
-        /* Painel principal de vidro */
+        .scene-wrap {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+            z-index: 0;
+        }
+
         .glass-panel {
             background: rgba(10, 10, 10, 0.45);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            opacity: 0; /* Escondido no início para ser animado pelo GSAP */
-            transform: translateY(40px);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
         }
 
         .font-brand { font-family: 'Cinzel', serif; }
@@ -92,9 +86,9 @@
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
             transition: all 0.8s ease;
         }
-        
+
         .link-btn:hover::before { left: 100%; }
-        
+
         .link-btn:hover {
             box-shadow: 0 20px 40px rgba(0,0,0,0.7);
             border-color: rgba(212, 175, 55, 0.3);
@@ -108,7 +102,7 @@
             position: relative;
             display: inline-block;
         }
-        
+
         .profile-img-container::after {
             content: '';
             position: absolute;
@@ -119,43 +113,38 @@
             z-index: -1;
             animation: spin 6s linear infinite;
         }
-        
-        @keyframes spin { 100% { background-position: 100% 50%; } }
 
-        .anim-item { opacity: 0; transform: translateY(20px); }
+        @keyframes spin { 100% { background-position: 100% 50%; } }
     </style>
 </head>
 <body class="antialiased flex items-center justify-center relative p-4 sm:p-6">
 
-    <!-- Cenário de Fundo -->
-    <div class="bg-base"></div>
+    <div class="scene-wrap"></div>
     <canvas id="bg-canvas"></canvas>
 
     <main class="w-full max-w-[450px] mx-auto relative z-10">
-        
         <div class="glass-panel rounded-[2rem] p-8 sm:px-10 sm:py-10 flex flex-col items-center text-center">
-            
-            <div class="profile-img-container mb-6 anim-item">
+
+            <div class="profile-img-container mb-6" id="anim-avatar">
                 <img src="https://i.imgur.com/ggIsIYT.png" alt="Prime Móveis Planejados" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-[2px] border-[#0a0a0a] shadow-2xl">
             </div>
 
-            <h1 class="text-3xl sm:text-4xl font-brand font-bold mb-2 text-gradient-gold uppercase tracking-[0.12em] anim-item">
+            <h1 class="text-3xl sm:text-4xl font-brand font-bold mb-2 text-gradient-gold uppercase tracking-[0.12em]" id="anim-title">
                 Prime
             </h1>
-            <h2 class="text-xs sm:text-sm font-light tracking-[0.25em] uppercase text-gray-300 mb-8 anim-item">
+            <h2 class="text-xs sm:text-sm font-light tracking-[0.25em] uppercase text-gray-300 mb-8" id="anim-sub">
                 Design • Qualidade • Acabamento
             </h2>
 
-            <div class="w-full mb-8 anim-item">
+            <div class="w-full mb-8" id="anim-loc">
                 <div class="inline-flex items-center justify-center gap-3 bg-black/40 px-5 py-2 rounded-full border border-white/5 backdrop-blur-sm">
                     <i class="fas fa-map-marker-alt text-[var(--gold-mid)] text-sm"></i>
                     <p class="text-[12px] text-gray-300 font-medium tracking-wider uppercase">Conselheiro Lafaiete</p>
                 </div>
             </div>
 
-            <!-- Botões de Ação -->
             <div class="w-full space-y-4 relative z-20">
-                <a href="https://wa.me/5531999999999" target="_blank" class="tilt link-btn btn-whatsapp w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
+                <a href="https://wa.me/5531999999999" target="_blank" class="tilt link-btn btn-whatsapp w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group" id="anim-btn1">
                     <div class="flex items-center gap-4">
                         <i class="fab fa-whatsapp text-2xl text-green-400 group-hover:text-white transition-colors"></i>
                         <span class="font-brand font-bold text-[15px] tracking-widest uppercase text-gray-100">Solicitar Orçamento</span>
@@ -163,246 +152,150 @@
                     <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
                 </a>
 
-                <a href="https://instagram.com/prime.moveisplanejados" target="_blank" class="tilt link-btn btn-instagram w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group anim-item">
+                <a href="https://instagram.com/prime.moveisplanejados" target="_blank" class="tilt link-btn btn-instagram w-full flex items-center justify-between px-5 py-4 rounded-xl text-white group" id="anim-btn2">
                     <div class="flex items-center gap-4">
                         <i class="fab fa-instagram text-2xl text-pink-400 group-hover:text-white transition-colors"></i>
-                         <span class="font-brand font-bold text-[15px] tracking-widest uppercase text-gray-100">Ver Projetos</span>
+                        <span class="font-brand font-bold text-[15px] tracking-widest uppercase text-gray-100">Ver Projetos</span>
                     </div>
                     <i class="fas fa-chevron-right opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-sm"></i>
                 </a>
             </div>
-            
-            <footer class="mt-10 text-center anim-item opacity-50">
-                 <p class="text-[9px] text-gray-400 font-medium tracking-[0.2em] uppercase">Prime Móveis © <span id="year"></span></p>
+
+            <footer class="mt-10 text-center" id="anim-footer">
+                <p class="text-[9px] text-gray-400 font-medium tracking-[0.2em] uppercase opacity-50">Prime Móveis © <span id="year"></span></p>
             </footer>
         </div>
     </main>
 
     <script>
-        // Atualiza o ano automaticamente
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Variáveis globais de controle
-        let scene, camera, renderer;
-        let pieces = []; 
-        let lines = [];
-        let drawer; // Peça específica para animar gaveta
-        let ledLight;
-        let is3DReady = false;
+        // IDs dos elementos animados
+        const animSelectors = ['#anim-avatar','#anim-title','#anim-sub','#anim-loc','#anim-btn1','#anim-btn2','#anim-footer'];
+        const panel = document.querySelector('.glass-panel');
 
-        // Aguarda toda a página carregar para garantir que o GSAP e o ThreeJS estão ativos
-        window.onload = function() {
-            try {
-                // Inicializa o efeito Tilt nos botões
-                if (window.VanillaTilt) {
-                    VanillaTilt.init(document.querySelectorAll(".tilt"), {
-                        max: 10, speed: 400, glare: true, "max-glare": 0.1, scale: 1.02
-                    });
-                }
+        // GSAP define os estados iniciais — evita conflito com CSS e Tailwind
+        gsap.set(panel, { opacity: 0, y: 40 });
+        animSelectors.forEach(sel => gsap.set(sel, { opacity: 0, y: 20 }));
 
-                // Inicia o ambiente 3D
-                init3DEnvironment();
-                
-                // Inicia as animações
-                startAnimations();
-            } catch (error) {
-                console.error("Erro ao iniciar a experiência 3D:", error);
-                // Fallback: Revela a interface HTML mesmo se o 3D falhar
-                gsap.to('.glass-panel', { opacity: 1, y: 0, duration: 1 });
-                gsap.to('.anim-item', { opacity: 1, y: 0, duration: 1, stagger: 0.1 });
-            }
-        };
+        function startUIAnimation() {
+            const tl = gsap.timeline();
+            tl.to(panel, { opacity: 1, y: 0, duration: 1.5, ease: 'power3.out', delay: 0.3 });
+            tl.to(animSelectors.map(s => document.querySelector(s)), {
+                opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: 'back.out(1.5)'
+            }, '-=0.8');
+        }
 
-        function init3DEnvironment() {
+        let scene, camera, renderer, time = 0;
+        let pieces = [], lines = [], drawer = null, ledLight;
+
+        function init3D() {
             const canvas = document.getElementById('bg-canvas');
-            
-            // Configuração do Renderizador (Otimizado para funcionar em qualquer dispositivo)
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
+            try {
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: window.devicePixelRatio < 2 });
+            } catch(e) { return false; }
+
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
-            
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
             scene = new THREE.Scene();
-            
-            // Câmera 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
             camera.position.set(7, 4, 9);
             camera.lookAt(0, 1.5, 0);
 
-            // --- Iluminação de Showroom Premium ---
-            const ambient = new THREE.AmbientLight(0xffeedd, 0.5); // Luz suave quente
-            scene.add(ambient);
-
+            scene.add(new THREE.AmbientLight(0xffeedd, 0.5));
             const spot1 = new THREE.SpotLight(0xffffff, 1.2);
-            spot1.position.set(5, 10, 5);
-            spot1.angle = Math.PI / 3;
-            scene.add(spot1);
-
+            spot1.position.set(5, 10, 5); spot1.angle = Math.PI / 3; scene.add(spot1);
             const spot2 = new THREE.SpotLight(0xaaccff, 0.8);
-            spot2.position.set(-5, 5, 5);
-            scene.add(spot2);
+            spot2.position.set(-5, 5, 5); scene.add(spot2);
 
-            // Fita de LED interna da prateleira (Começa apagada)
-            ledLight = new THREE.PointLight(0xffaa00, 0, 8); 
+            ledLight = new THREE.PointLight(0xffaa00, 0, 8);
             ledLight.position.set(0, 2.5, 0);
             scene.add(ledLight);
 
-            // --- Materiais ---
-            // Usamos materiais opacos (transparent: false) para evitar bugs em celulares
-            const matWood = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.7, metalness: 0.1 });
+            const matWood  = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.7, metalness: 0.1 });
             const matBlack = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.2 });
-            
-            // Material das linhas de projeto (fio de ouro)
-            const matLine = new THREE.LineBasicMaterial({ color: 0xd4af37 });
+            const matLine  = new THREE.LineBasicMaterial({ color: 0xd4af37 });
 
-            function createModule(w, h, d, x, y, z, material, isDrawer = false) {
-                const group = new THREE.Group();
-                group.position.set(x, y, z);
-
-                // Parte sólida do móvel
-                const geo = new THREE.BoxGeometry(w, h, d);
-                const mesh = new THREE.Mesh(geo, material);
-                
-                // Oculta o objeto sólido inicialmente escalando para 0
-                // É mais seguro e performático que usar opacity em WebGL
-                mesh.scale.set(0.001, 0.001, 0.001); 
-                group.add(mesh);
-
-                // Linhas do projeto (Wireframe) para animação
-                const edges = new THREE.EdgesGeometry(geo);
-                const line = new THREE.LineSegments(edges, matLine);
-                // Linhas começam escaladas em 0 também
-                line.scale.set(0.001, 0.001, 0.001);
-                group.add(line);
-
-                scene.add(group);
-                
+            function addModule(w, h, d, x, y, z, mat, isDrawer) {
+                const g = new THREE.Group();
+                g.position.set(x, y, z);
+                const geo  = new THREE.BoxGeometry(w, h, d);
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.scale.setScalar(0.001);
+                g.add(mesh);
+                const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), matLine);
+                line.scale.setScalar(0.001);
+                g.add(line);
+                scene.add(g);
                 pieces.push(mesh);
                 lines.push(line);
-                
-                if (isDrawer) {
-                    drawer = { group: group, mesh: mesh, startZ: z };
-                }
+                if (isDrawer) drawer = { group: g, startZ: z };
             }
 
-            // --- Montagem do Ambiente (Guarda-roupa / Estante Planejada) ---
-            
-            // Base Inferior (Preto Fosco)
-            createModule(4.2, 0.3, 1.6, 0, 0.15, 0, matBlack);
-            
-            // Gavetão Esquerdo (Madeira) -> Esta é a gaveta que será aberta na animação
-            createModule(1.9, 0.7, 1.5, -1.0, 0.7, 0, matWood, true); 
-            
-            // Gavetão Direito (Madeira)
-            createModule(1.9, 0.7, 1.5, 1.0, 0.7, 0, matWood);
+            addModule(4.2, 0.3, 1.6,  0,    0.15, 0,     matBlack);
+            addModule(1.9, 0.7, 1.5, -1.0,  0.7,  0,     matWood, true);
+            addModule(1.9, 0.7, 1.5,  1.0,  0.7,  0,     matWood);
+            addModule(4.2, 3.5, 0.1,  0,    2.9, -0.75,  matWood);
+            addModule(4.2, 0.15,1.2,  0,    4.0, -0.2,   matBlack);
+            addModule(1.2, 4.5, 1.6, -2.7,  2.25, 0,     matBlack);
+            addModule(0.8, 4.5, 1.6,  2.5,  2.25, 0,     matWood);
 
-            // Painel de Fundo Ripado Simulado (Madeira)
-            createModule(4.2, 3.5, 0.1, 0, 2.9, -0.75, matWood);
-
-            // Prateleira Superior (Preto Fosco)
-            createModule(4.2, 0.15, 1.2, 0, 4.0, -0.2, matBlack);
-
-            // Armário Torre Lateral (Preto Fosco)
-            createModule(1.2, 4.5, 1.6, -2.7, 2.25, 0, matBlack);
-
-            // Armário Torre Lateral Direito (Madeira)
-            createModule(0.8, 4.5, 1.6, 2.5, 2.25, 0, matWood);
-
-            is3DReady = true;
-
-            // Inicia o renderizador contínuo
-            requestAnimationFrame(renderLoop);
+            return true;
         }
 
-        function startAnimations() {
-            // 1. Animação da Interface HTML (Cartão e Botões)
-            const uiTl = gsap.timeline();
-            uiTl.to('.glass-panel', { opacity: 1, y: 0, duration: 1.5, ease: "power3.out", delay: 0.5 })
-                .to('.anim-item', { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "back.out(1.5)" }, "-=0.5");
+        function start3DAnimation() {
+            if (!pieces.length) return;
+            const scales = pieces.map(p => p.scale);
+            const lScales = lines.map(l => l.scale);
+            const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
 
-            if (!is3DReady) return;
+            tl.to(lScales, { x: 1, y: 1, z: 1, duration: 1.2, stagger: 0.1, ease: 'power2.out' }, 0)
+              .to(scales,  { x: 1, y: 1, z: 1, duration: 1.5, stagger: 0.15, ease: 'back.out(1.2)' }, 1.0)
+              .to(lScales, { x: 0.001, y: 0.001, z: 0.001, duration: 0.5 }, 2.0);
 
-            // 2. Animação 3D da Montagem (Em Loop Contínuo)
-            const tl3d = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
-
-            // FASE 1: O Projeto (Surgem as linhas arquitetônicas)
-            tl3d.to(lines.map(l => l.scale), {
-                x: 1, y: 1, z: 1,
-                duration: 1.2,
-                stagger: 0.1,
-                ease: "power2.out"
-            }, 0);
-
-            // FASE 2: A Construção (Móveis sólidos preenchem o projeto)
-            tl3d.to(pieces.map(p => p.scale), {
-                x: 1, y: 1, z: 1,
-                duration: 1.5,
-                stagger: 0.15,
-                ease: "back.out(1.2)"
-            }, 1.0);
-
-            // Some com as linhas de projeto para ficar o móvel real
-            tl3d.to(lines.map(l => l.scale), {
-                x: 0.001, y: 0.001, z: 0.001,
-                duration: 0.5
-            }, 2.0);
-
-            // FASE 3: Acabamento Premium (Abre a gaveta e acende o LED)
             if (drawer) {
-                // Simula o deslizamento com amortecedor
-                tl3d.to(drawer.group.position, {
-                    z: drawer.startZ + 0.6,
-                    duration: 1.2,
-                    ease: "power2.inOut"
-                }, 3.0);
+                tl.to(drawer.group.position, { z: drawer.startZ + 0.6, duration: 1.2, ease: 'power2.inOut' }, 3.0);
             }
-            tl3d.to(ledLight, { intensity: 1.5, duration: 1 }, 3.0);
-
-            // FASE 4: Pausa contemplativa, depois fecha e reseta
+            tl.to(ledLight, { intensity: 1.5, duration: 1 }, 3.0);
             if (drawer) {
-                // Fecha a gaveta suavemente
-                tl3d.to(drawer.group.position, {
-                    z: drawer.startZ,
-                    duration: 1.0,
-                    ease: "power2.inOut"
-                }, 6.0);
+                tl.to(drawer.group.position, { z: drawer.startZ, duration: 1.0, ease: 'power2.inOut' }, 6.0);
             }
-            tl3d.to(ledLight, { intensity: 0, duration: 1 }, 6.0);
-
-            // Desmonta tudo em escala 0 para o loop reiniciar
-            tl3d.to(pieces.map(p => p.scale), {
-                x: 0.001, y: 0.001, z: 0.001,
-                duration: 1.0,
-                ease: "power2.in"
-            }, 7.0);
+            tl.to(ledLight, { intensity: 0, duration: 1 }, 6.0)
+              .to(scales, { x: 0.001, y: 0.001, z: 0.001, duration: 1.0, ease: 'power2.in' }, 7.0);
         }
 
-        let time = 0;
         function renderLoop() {
             requestAnimationFrame(renderLoop);
             time += 0.003;
-
-            // Movimento cinematográfico rotacionando suavemente em volta do ambiente
-            if (camera) {
-                const radius = 9;
-                camera.position.x = Math.sin(time) * 4;
-                camera.position.z = radius + Math.cos(time * 0.8) * 1.5;
-                camera.lookAt(0, 1.5, 0);
-            }
-
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+            camera.position.x = Math.sin(time) * 4;
+            camera.position.z = 9 + Math.cos(time * 0.8) * 1.5;
+            camera.lookAt(0, 1.5, 0);
+            renderer.render(scene, camera);
         }
 
-        // Responsividade do 3D ao redimensionar a tela
         window.addEventListener('resize', () => {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            }
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        window.addEventListener('load', () => {
+            if (window.VanillaTilt) {
+                VanillaTilt.init(document.querySelectorAll('.tilt'), {
+                    max: 10, speed: 400, glare: true, 'max-glare': 0.1, scale: 1.02
+                });
+            }
+
+            startUIAnimation();
+
+            const ok = init3D();
+            if (ok) {
+                start3DAnimation();
+                renderLoop();
+            }
+        });
     </script>
 </body>
 </html>
