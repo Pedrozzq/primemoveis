@@ -1,3 +1,6 @@
+Aqui está o código completo e atualizado:
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -211,7 +214,26 @@
         }
 
         let scene, camera, renderer, time = 0, rafId = null;
-        let pieces = [], lines = [], drawer = null, ledLight;
+        let floorPiece = null, wallPieces = [], roofPiece = null, doorPiece = null, windowPieces = [], ledLight;
+
+        // Cria uma peça da casa: grupo com o sólido (some/aparece) + contorno dourado (efeito "planta baixa" -> sólido)
+        function addHousePiece(geo, mat, x, y, z) {
+            const g = new THREE.Group();
+            g.position.set(x, y, z);
+
+            const meshMat = mat.clone();
+            meshMat.transparent = true;
+            meshMat.opacity = 0;
+            const mesh = new THREE.Mesh(geo, meshMat);
+            g.add(mesh);
+
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0 });
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
+            g.add(edges);
+
+            scene.add(g);
+            return { group: g, mesh, edges, finalY: y };
+        }
 
         function init3D() {
             const canvas = document.getElementById('bg-canvas');
@@ -224,8 +246,8 @@
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(7, 4, 9);
-            camera.lookAt(0, 1.5, 0);
+            camera.position.set(7, 5, 10);
+            camera.lookAt(0, 1.6, 0);
 
             scene.add(new THREE.AmbientLight(0xffeedd, 0.5));
             const spot1 = new THREE.SpotLight(0xffffff, 1.2);
@@ -233,62 +255,77 @@
             const spot2 = new THREE.SpotLight(0xaaccff, 0.8);
             spot2.position.set(-5, 5, 5); scene.add(spot2);
 
-            ledLight = new THREE.PointLight(0xffaa00, 0, 8);
-            ledLight.position.set(0, 2.5, 0);
+            ledLight = new THREE.PointLight(0xffaa00, 0, 9);
+            ledLight.position.set(0, 1.8, 0);
             scene.add(ledLight);
 
-            const matWood  = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.7, metalness: 0.1 });
-            const matBlack = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.2 });
-            const matLine  = new THREE.LineBasicMaterial({ color: 0xd4af37 });
+            const matFloor  = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.2 });
+            const matWall   = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.85, metalness: 0.1 });
+            const matRoof   = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.6, metalness: 0.1 });
+            const matDoor   = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.7 });
+            const matWindow = new THREE.MeshStandardMaterial({ color: 0xffe9b0, emissive: 0xffb347, emissiveIntensity: 0, roughness: 0.3 });
 
-            function addModule(w, h, d, x, y, z, mat, isDrawer) {
-                const g = new THREE.Group();
-                g.position.set(x, y, z);
-                const geo  = new THREE.BoxGeometry(w, h, d);
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.scale.setScalar(0.001);
-                g.add(mesh);
-                const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), matLine);
-                line.scale.setScalar(0.001);
-                g.add(line);
-                scene.add(g);
-                pieces.push(mesh);
-                lines.push(line);
-                if (isDrawer) drawer = { group: g, startZ: z };
-            }
+            const wallH = 2.2;
 
-            addModule(4.2, 0.3, 1.6,  0,    0.15, 0,     matBlack);
-            addModule(1.9, 0.7, 1.5, -1.0,  0.7,  0,     matWood, true);
-            addModule(1.9, 0.7, 1.5,  1.0,  0.7,  0,     matWood);
-            addModule(4.2, 3.5, 0.1,  0,    2.9, -0.75,  matWood);
-            addModule(4.2, 0.15,1.2,  0,    4.0, -0.2,   matBlack);
-            addModule(1.2, 4.5, 1.6, -2.7,  2.25, 0,     matBlack);
-            addModule(0.8, 4.5, 1.6,  2.5,  2.25, 0,     matWood);
+            // Casa: representa o "lar planejado" que a loja entrega — piso, paredes, telhado, porta e janelas
+            floorPiece = addHousePiece(new THREE.BoxGeometry(4.6, 0.2, 4.6), matFloor, 0, 0.1, 0);
+
+            wallPieces.push(addHousePiece(new THREE.BoxGeometry(4.4, wallH, 0.15), matWall,  0,          wallH / 2,  2.15));
+            wallPieces.push(addHousePiece(new THREE.BoxGeometry(4.4, wallH, 0.15), matWall,  0,          wallH / 2, -2.15));
+            wallPieces.push(addHousePiece(new THREE.BoxGeometry(0.15, wallH, 4.4), matWall,  2.15,       wallH / 2,  0));
+            wallPieces.push(addHousePiece(new THREE.BoxGeometry(0.15, wallH, 4.4), matWall, -2.15,       wallH / 2,  0));
+
+            roofPiece = addHousePiece(new THREE.ConeGeometry(3.4, 1.5, 4), matRoof, 0, wallH + 0.75, 0);
+            roofPiece.group.rotation.y = Math.PI / 4;
+
+            doorPiece = addHousePiece(new THREE.BoxGeometry(0.9, 1.5, 0.05), matDoor, 0, 0.75, 2.23);
+
+            windowPieces.push(addHousePiece(new THREE.BoxGeometry(0.7, 0.7, 0.05), matWindow, -1.3, 1.3, 2.23));
+            windowPieces.push(addHousePiece(new THREE.BoxGeometry(0.7, 0.7, 0.05), matWindow,  1.3, 1.3, 2.23));
 
             return true;
         }
 
-        // Animação de montagem dos móveis: toca UMA vez (sem repeat) e avisa quando termina
-        function start3DAnimation(onDone) {
-            if (!pieces.length) { onDone(); return; }
+        // Anima uma peça: sobe/desce até a posição final (ou aparece com pop de escala), com contorno dourado
+        // surgindo antes do sólido — efeito "planta baixa" (blueprint) que se materializa em construção real.
+        function revealPiece(tl, piece, t, { fromY, duration, ease = 'power2.out', pop = false } = {}) {
+            const { group, mesh, edges, finalY } = piece;
 
-            const scales = pieces.map(p => p.scale);
-            const lScales = lines.map(l => l.scale);
+            if (pop) {
+                group.scale.setScalar(0.001);
+                tl.to(group.scale, { x: 1, y: 1, z: 1, duration, ease: 'back.out(1.7)' }, t);
+            } else {
+                group.position.y = fromY;
+                tl.to(group.position, { y: finalY, duration, ease }, t);
+            }
+
+            tl.fromTo(edges.material, { opacity: 0 }, { opacity: 1, duration: duration * 0.4 }, t);
+            tl.to(mesh.material, { opacity: 1, duration: duration * 0.6 }, t + duration * 0.25);
+            tl.to(edges.material, { opacity: 0, duration: duration * 0.35 }, t + duration * 0.7);
+        }
+
+        // Animação de uma casa sendo montada: toca UMA vez (sem repeat) e avisa quando termina
+        function start3DAnimation(onDone) {
+            if (!floorPiece) { onDone(); return; }
+
             const tl = gsap.timeline({ onComplete: onDone });
 
-            tl.to(lScales, { x: 1, y: 1, z: 1, duration: 0.5, stagger: 0.04, ease: 'power2.out' }, 0)
-              .to(scales,  { x: 1, y: 1, z: 1, duration: 0.7, stagger: 0.06, ease: 'back.out(1.4)' }, 0.35)
-              .to(lScales, { x: 0.001, y: 0.001, z: 0.001, duration: 0.35 }, 0.9);
+            revealPiece(tl, floorPiece, 0, { fromY: -1.2, duration: 0.5 });
 
-            if (drawer) {
-                tl.to(drawer.group.position, { z: drawer.startZ + 0.6, duration: 0.5, ease: 'power2.inOut' }, 1.2);
-            }
-            tl.to(ledLight, { intensity: 1.5, duration: 0.4 }, 1.2);
+            wallPieces.forEach((wall, i) => {
+                revealPiece(tl, wall, 0.3 + i * 0.12, { fromY: wall.finalY - 2.6, duration: 0.55, ease: 'back.out(1.3)' });
+            });
 
-            if (drawer) {
-                tl.to(drawer.group.position, { z: drawer.startZ, duration: 0.45, ease: 'power2.inOut' }, 1.95);
-            }
-            tl.to(ledLight, { intensity: 0, duration: 0.4 }, 1.95);
+            revealPiece(tl, roofPiece, 1.05, { fromY: roofPiece.finalY + 3.2, duration: 0.6, ease: 'back.out(1.6)' });
+
+            revealPiece(tl, doorPiece, 1.55, { duration: 0.35, pop: true });
+            windowPieces.forEach((win, i) => {
+                revealPiece(tl, win, 1.65 + i * 0.1, { duration: 0.35, pop: true });
+            });
+
+            // A luz da casa pronta acende — o "lar planejado" entregue pela loja
+            tl.to(windowPieces.map(w => w.mesh.material), { emissiveIntensity: 1, duration: 0.5, stagger: 0.1 }, 1.95);
+            tl.to(ledLight, { intensity: 1.6, duration: 0.5 }, 1.95);
         }
 
         // Depois que a montagem termina, a cena 3D some por completo, deixando só o fundo escuro + card
@@ -310,8 +347,8 @@
             rafId = requestAnimationFrame(renderLoop);
             time += 0.003;
             camera.position.x = Math.sin(time) * 4;
-            camera.position.z = 9 + Math.cos(time * 0.8) * 1.5;
-            camera.lookAt(0, 1.5, 0);
+            camera.position.z = 10 + Math.cos(time * 0.8) * 1.5;
+            camera.lookAt(0, 1.6, 0);
             renderer.render(scene, camera);
         }
 
@@ -343,3 +380,4 @@
     </script>
 </body>
 </html>
+```
