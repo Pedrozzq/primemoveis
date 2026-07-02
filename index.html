@@ -47,7 +47,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
-            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+            background: radial-gradient(circle at 50% 38%, #241f16 0%, #0d0b08 55%, #030302 100%);
             z-index: 0;
         }
 
@@ -210,8 +210,93 @@
             }
         }
 
-        let scene, camera, renderer, time = 0, rafId = null;
-        let pieces = [], lines = [], drawer = null, ledLight;
+        let scene, camera, renderer, rafId = null, idleSpin = 0;
+        let spot1, spot2, ledLight, pendantLight1, pendantLight2;
+        let floorPiece, backWallPiece, sideWallPiece;
+        let lowerCabLeftPiece, lowerCabRightPiece, cooktopPiece, countertopPiece, counterTrimPiece;
+        let upperCabLeftPiece, upperCabRightPiece, upperLedStripPiece, hoodPiece;
+        let islandBasePiece, islandTopPiece, islandTrimPiece, pendantShade1Piece, pendantShade2Piece;
+        let particlePositions, particleGeometry, particleMaterial, particlePoints;
+
+        // Câmera cinematográfica: um objeto simples que o GSAP anima (dolly + leve rotação),
+        // lido a cada frame no renderLoop — sem conflito entre a "sweep" dirigida e a deriva contínua.
+        const cam = { angle: -0.5, radius: 10, height: 5.4, lookY: 1.0 };
+
+        // Cria uma peça da casa/loja: grupo com o sólido (aparece com opacidade) + contorno dourado
+        // (efeito "planta baixa" -> construção real), que pode ser animado em X, Y ou Z.
+        function addHousePiece(geo, mat, x, y, z) {
+            const g = new THREE.Group();
+            g.position.set(x, y, z);
+
+            const meshMat = mat.clone();
+            meshMat.transparent = true;
+            meshMat.opacity = 0;
+            const mesh = new THREE.Mesh(geo, meshMat);
+            g.add(mesh);
+
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0 });
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
+            g.add(edges);
+
+            scene.add(g);
+            return { group: g, mesh, edges, finalX: x, finalY: y, finalZ: z };
+        }
+
+        function createGlowTexture() {
+            const size = 64;
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Partículas suaves (poeira/luz) para a atmosfera premium — sobem lentamente e reaparecem por baixo
+        function createParticles(count) {
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const gold = new THREE.Color(0xd4af37);
+            const white = new THREE.Color(0xfff6e0);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3]     = (Math.random() - 0.5) * 9;
+                positions[i * 3 + 1] = Math.random() * 6;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 9;
+                const c = Math.random() > 0.6 ? gold : white;
+                colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+            }
+
+            particlePositions = positions;
+            particleGeometry = new THREE.BufferGeometry();
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            particleMaterial = new THREE.PointsMaterial({
+                size: 0.16, map: createGlowTexture(), transparent: true, opacity: 0,
+                vertexColors: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+            });
+
+            particlePoints = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particlePoints);
+        }
+
+        function updateParticles() {
+            if (!particlePositions) return;
+            for (let i = 0; i < particlePositions.length; i += 3) {
+                particlePositions[i + 1] += 0.0035;
+                if (particlePositions[i + 1] > 6.2) {
+                    particlePositions[i + 1] = -0.3;
+                    particlePositions[i] = (Math.random() - 0.5) * 9;
+                    particlePositions[i + 2] = (Math.random() - 0.5) * 9;
+                }
+            }
+            particleGeometry.attributes.position.needsUpdate = true;
+        }
 
         function init3D() {
             const canvas = document.getElementById('bg-canvas');
@@ -223,72 +308,144 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(7, 4, 9);
-            camera.lookAt(0, 1.5, 0);
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
 
-            scene.add(new THREE.AmbientLight(0xffeedd, 0.5));
-            const spot1 = new THREE.SpotLight(0xffffff, 1.2);
-            spot1.position.set(5, 10, 5); spot1.angle = Math.PI / 3; scene.add(spot1);
-            const spot2 = new THREE.SpotLight(0xaaccff, 0.8);
-            spot2.position.set(-5, 5, 5); scene.add(spot2);
+            scene.add(new THREE.AmbientLight(0xfff1de, 0.45));
+            spot1 = new THREE.SpotLight(0xfff4e0, 1.1);
+            spot1.position.set(6, 9, 6); spot1.angle = Math.PI / 3.4; scene.add(spot1);
+            spot2 = new THREE.SpotLight(0xbfd4ff, 0.55);
+            spot2.position.set(-6, 6, -3); scene.add(spot2);
 
-            ledLight = new THREE.PointLight(0xffaa00, 0, 8);
-            ledLight.position.set(0, 2.5, 0);
+            ledLight = new THREE.PointLight(0xffb463, 0, 7);
+            ledLight.position.set(0, 1.3, 0.3);
             scene.add(ledLight);
 
-            const matWood  = new THREE.MeshStandardMaterial({ color: 0xb58c63, roughness: 0.7, metalness: 0.1 });
-            const matBlack = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.2 });
-            const matLine  = new THREE.LineBasicMaterial({ color: 0xd4af37 });
+            pendantLight1 = new THREE.PointLight(0xffdca8, 0, 3);
+            pendantLight1.position.set(-0.55, 1.85, 0.55);
+            scene.add(pendantLight1);
+            pendantLight2 = new THREE.PointLight(0xffdca8, 0, 3);
+            pendantLight2.position.set(0.55, 1.85, 0.55);
+            scene.add(pendantLight2);
 
-            function addModule(w, h, d, x, y, z, mat, isDrawer) {
-                const g = new THREE.Group();
-                g.position.set(x, y, z);
-                const geo  = new THREE.BoxGeometry(w, h, d);
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.scale.setScalar(0.001);
-                g.add(mesh);
-                const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), matLine);
-                line.scale.setScalar(0.001);
-                g.add(line);
-                scene.add(g);
-                pieces.push(mesh);
-                lines.push(line);
-                if (isDrawer) drawer = { group: g, startZ: z };
-            }
+            // Paleta premium: preto fosco, madeira natural, mármore, tons neutros e dourado discreto
+            const matFloor    = new THREE.MeshStandardMaterial({ color: 0x232323, roughness: 0.95, metalness: 0.05 });
+            const matWallBack = new THREE.MeshStandardMaterial({ color: 0xdcd5c6, roughness: 0.92 });
+            const matWallSide = new THREE.MeshStandardMaterial({ color: 0xc7c0af, roughness: 0.92 });
+            const matWood     = new THREE.MeshStandardMaterial({ color: 0xa9784f, roughness: 0.55, metalness: 0.05 });
+            const matMarble   = new THREE.MeshStandardMaterial({ color: 0xede7db, roughness: 0.2, metalness: 0.15 });
+            const matCabinet  = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.85, metalness: 0.1 });
+            const matGlass    = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.15, metalness: 0.4 });
+            const matGold     = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.3, metalness: 0.8 });
+            const matLED      = new THREE.MeshStandardMaterial({ color: 0xfff2d9, emissive: 0xffd9a0, emissiveIntensity: 0, roughness: 0.4 });
 
-            addModule(4.2, 0.3, 1.6,  0,    0.15, 0,     matBlack);
-            addModule(1.9, 0.7, 1.5, -1.0,  0.7,  0,     matWood, true);
-            addModule(1.9, 0.7, 1.5,  1.0,  0.7,  0,     matWood);
-            addModule(4.2, 3.5, 0.1,  0,    2.9, -0.75,  matWood);
-            addModule(4.2, 0.15,1.2,  0,    4.0, -0.2,   matBlack);
-            addModule(1.2, 4.5, 1.6, -2.7,  2.25, 0,     matBlack);
-            addModule(0.8, 4.5, 1.6,  2.5,  2.25, 0,     matWood);
+            const wallH = 2.3;
+
+            // Cantinho da cozinha em corte (sem parede frontal) — como uma maquete aberta, mostrando o ambiente
+            floorPiece    = addHousePiece(new THREE.BoxGeometry(4.6, 0.2, 3.8), matFloor, 0, 0.1, 0);
+            backWallPiece = addHousePiece(new THREE.BoxGeometry(4.4, wallH, 0.15), matWallBack, 0, wallH / 2, -1.85);
+            sideWallPiece = addHousePiece(new THREE.BoxGeometry(0.15, wallH, 3.8), matWallSide, -2.05, wallH / 2, 0);
+
+            // Armários inferiores planejados deslizando dos dois lados, com vão central para o cooktop
+            lowerCabLeftPiece  = addHousePiece(new THREE.BoxGeometry(1.9, 0.9, 0.65), matCabinet, -1.05, 0.45, -1.45);
+            lowerCabRightPiece = addHousePiece(new THREE.BoxGeometry(1.9, 0.9, 0.65), matCabinet,  1.05, 0.45, -1.45);
+            cooktopPiece       = addHousePiece(new THREE.BoxGeometry(0.5, 0.04, 0.5), matGlass, 0, 0.97, -1.45);
+
+            // Bancada de mármore com friso dourado discreto no rodapé
+            countertopPiece  = addHousePiece(new THREE.BoxGeometry(4.0, 0.06, 0.68), matMarble, 0, 0.93, -1.45);
+            counterTrimPiece = addHousePiece(new THREE.BoxGeometry(4.02, 0.02, 0.06), matGold, 0, 0.9, -1.11);
+
+            // Armários superiores flutuantes com luz de LED embutida no rodapé, e coifa sob medida
+            upperCabLeftPiece  = addHousePiece(new THREE.BoxGeometry(1.7, 0.7, 0.35), matCabinet, -1.15, 1.85, -1.6);
+            upperCabRightPiece = addHousePiece(new THREE.BoxGeometry(1.7, 0.7, 0.35), matCabinet,  1.15, 1.85, -1.6);
+            upperLedStripPiece = addHousePiece(new THREE.BoxGeometry(1.7, 0.03, 0.34), matLED, 0, 1.47, -1.6);
+            hoodPiece = addHousePiece(new THREE.CylinderGeometry(0.28, 0.5, 0.55, 4), matCabinet, 0, 1.75, -1.4);
+            hoodPiece.group.rotation.y = Math.PI / 4;
+
+            // Ilha central com tampo em cascata e friso dourado
+            islandBasePiece = addHousePiece(new THREE.BoxGeometry(1.9, 0.9, 0.9), matWood, 0, 0.45, 0.55);
+            islandTopPiece  = addHousePiece(new THREE.BoxGeometry(2.1, 0.07, 1.05), matMarble, 0, 0.965, 0.55);
+            islandTrimPiece = addHousePiece(new THREE.BoxGeometry(2.12, 0.02, 0.06), matGold, 0, 0.93, 1.06);
+
+            // Pendentes sobre a ilha
+            pendantShade1Piece = addHousePiece(new THREE.CylinderGeometry(0.22, 0.1, 0.28, 12), matGold, -0.55, 2.05, 0.55);
+            pendantShade2Piece = addHousePiece(new THREE.CylinderGeometry(0.22, 0.1, 0.28, 12), matGold,  0.55, 2.05, 0.55);
+
+            createParticles(70);
 
             return true;
         }
 
-        // Animação de montagem dos móveis: toca UMA vez (sem repeat) e avisa quando termina
+        // Anima uma peça: deslocamento até a posição final (ou pop de escala), com contorno dourado
+        // surgindo antes do sólido — efeito "planta baixa" que se materializa em construção real.
+        function revealPiece(tl, piece, t, opts = {}) {
+            const { group, mesh, edges, finalX, finalY, finalZ } = piece;
+            const { from = {}, duration, ease = 'power2.out', pop = false } = opts;
+
+            if (pop) {
+                group.scale.setScalar(0.001);
+                tl.to(group.scale, { x: 1, y: 1, z: 1, duration, ease: 'back.out(1.7)' }, t);
+            } else {
+                group.position.set(from.x ?? finalX, from.y ?? finalY, from.z ?? finalZ);
+                tl.to(group.position, { x: finalX, y: finalY, z: finalZ, duration, ease }, t);
+            }
+
+            tl.fromTo(edges.material, { opacity: 0 }, { opacity: 1, duration: duration * 0.4 }, t);
+            tl.to(mesh.material, { opacity: 1, duration: duration * 0.6 }, t + duration * 0.25);
+            tl.to(edges.material, { opacity: 0, duration: duration * 0.35 }, t + duration * 0.7);
+        }
+
+        // Cozinha planejada sendo montada módulo por módulo, com câmera cinematográfica (dolly + rotação lenta).
+        // Toca UMA vez (sem repeat) e avisa quando termina.
         function start3DAnimation(onDone) {
-            if (!pieces.length) { onDone(); return; }
+            if (!floorPiece) { onDone(); return; }
 
-            const scales = pieces.map(p => p.scale);
-            const lScales = lines.map(l => l.scale);
             const tl = gsap.timeline({ onComplete: onDone });
+            const total = 3.9;
 
-            tl.to(lScales, { x: 1, y: 1, z: 1, duration: 0.5, stagger: 0.04, ease: 'power2.out' }, 0)
-              .to(scales,  { x: 1, y: 1, z: 1, duration: 0.7, stagger: 0.06, ease: 'back.out(1.4)' }, 0.35)
-              .to(lScales, { x: 0.001, y: 0.001, z: 0.001, duration: 0.35 }, 0.9);
+            // Câmera: começa afastada e alta (visão geral do ambiente), aproxima e desce suavemente
+            // até um enquadramento mais íntimo da bancada e da ilha — dolly + leve rotação ao redor da cozinha.
+            tl.to(cam, { angle: 0.5, radius: 7, height: 2.9, lookY: 1.3, duration: total, ease: 'sine.inOut' }, 0);
+            tl.to(particleMaterial, { opacity: 0.45, duration: 1.3 }, 0.15);
 
-            if (drawer) {
-                tl.to(drawer.group.position, { z: drawer.startZ + 0.6, duration: 0.5, ease: 'power2.inOut' }, 1.2);
-            }
-            tl.to(ledLight, { intensity: 1.5, duration: 0.4 }, 1.2);
+            // 1. Estrutura: piso e paredes sobem no lugar
+            revealPiece(tl, floorPiece, 0, { from: { y: -1.2 }, duration: 0.5 });
+            revealPiece(tl, backWallPiece, 0.3, { from: { y: backWallPiece.finalY - 2.6 }, duration: 0.6, ease: 'back.out(1.2)' });
+            revealPiece(tl, sideWallPiece, 0.45, { from: { y: sideWallPiece.finalY - 2.6 }, duration: 0.6, ease: 'back.out(1.2)' });
 
-            if (drawer) {
-                tl.to(drawer.group.position, { z: drawer.startZ, duration: 0.45, ease: 'power2.inOut' }, 1.95);
-            }
-            tl.to(ledLight, { intensity: 0, duration: 0.4 }, 1.95);
+            // 2. Armários inferiores planejados deslizando dos dois lados, com o cooktop se encaixando no vão
+            revealPiece(tl, lowerCabLeftPiece, 0.75, { from: { x: -7 }, duration: 0.65, ease: 'power3.out' });
+            revealPiece(tl, lowerCabRightPiece, 0.85, { from: { x: 7 }, duration: 0.65, ease: 'power3.out' });
+            revealPiece(tl, cooktopPiece, 1.35, { duration: 0.3, pop: true });
+
+            // 3. Bancada de mármore assenta por cima, com friso dourado no rodapé
+            revealPiece(tl, countertopPiece, 1.45, { from: { y: countertopPiece.finalY + 2.5 }, duration: 0.55, ease: 'back.out(1.4)' });
+            revealPiece(tl, counterTrimPiece, 1.65, { duration: 0.3, pop: true });
+
+            // 4. Armários superiores flutuantes descem, com LED embutido no rodapé, e a coifa se encaixa
+            revealPiece(tl, upperCabLeftPiece, 1.55, { from: { y: upperCabLeftPiece.finalY + 2.5 }, duration: 0.55, ease: 'back.out(1.3)' });
+            revealPiece(tl, upperCabRightPiece, 1.65, { from: { y: upperCabRightPiece.finalY + 2.5 }, duration: 0.55, ease: 'back.out(1.3)' });
+            revealPiece(tl, upperLedStripPiece, 1.85, { duration: 0.3, pop: true });
+            revealPiece(tl, hoodPiece, 1.95, { from: { y: hoodPiece.finalY + 2.5 }, duration: 0.55, ease: 'back.out(1.4)' });
+
+            // 5. Ilha central com tampo em cascata e friso dourado
+            revealPiece(tl, islandBasePiece, 2.1, { from: { y: -1.2 }, duration: 0.6, ease: 'back.out(1.2)' });
+            revealPiece(tl, islandTopPiece, 2.55, { from: { y: islandTopPiece.finalY + 2.2 }, duration: 0.5, ease: 'back.out(1.4)' });
+            revealPiece(tl, islandTrimPiece, 2.75, { duration: 0.3, pop: true });
+
+            // 6. Pendentes descem sobre a ilha
+            revealPiece(tl, pendantShade1Piece, 2.2, { from: { y: pendantShade1Piece.finalY + 2.0 }, duration: 0.5, ease: 'back.out(1.3)' });
+            revealPiece(tl, pendantShade2Piece, 2.3, { from: { y: pendantShade2Piece.finalY + 2.0 }, duration: 0.5, ease: 'back.out(1.3)' });
+
+            // 7. Acabamento: a cozinha pronta acende — LED do rodapé, pendentes e reflexos discretos
+            tl.to(upperLedStripPiece.mesh.material, { emissiveIntensity: 1, duration: 0.5 }, 2.9);
+            tl.to(ledLight, { intensity: 1.3, duration: 0.6 }, 2.9);
+            tl.to(pendantLight1, { intensity: 1.1, duration: 0.5 }, 3.0);
+            tl.to(pendantLight2, { intensity: 1.1, duration: 0.5 }, 3.05);
+            tl.to(spot1, { intensity: 1.4, duration: 0.6 }, 2.9);
+            tl.to(spot2, { intensity: 0.75, duration: 0.6 }, 2.9);
+
+            // Pausa cinematográfica final antes do fade
+            tl.to({}, { duration: 0.55 }, 3.45);
         }
 
         // Depois que a montagem termina, a cena 3D some por completo, deixando só o fundo escuro + card
@@ -308,10 +465,11 @@
 
         function renderLoop() {
             rafId = requestAnimationFrame(renderLoop);
-            time += 0.003;
-            camera.position.x = Math.sin(time) * 4;
-            camera.position.z = 9 + Math.cos(time * 0.8) * 1.5;
-            camera.lookAt(0, 1.5, 0);
+            idleSpin += 0.0009;
+            updateParticles();
+            const a = cam.angle + idleSpin;
+            camera.position.set(Math.sin(a) * cam.radius, cam.height, Math.cos(a) * cam.radius);
+            camera.lookAt(0, cam.lookY, 0);
             renderer.render(scene, camera);
         }
 
@@ -328,7 +486,7 @@
             if (ok) {
                 renderLoop();
                 // Segurança: se por algum motivo o onComplete não disparar, segue o fluxo mesmo assim
-                const fallback = setTimeout(() => fadeOut3D(revealUI), 4500);
+                const fallback = setTimeout(() => fadeOut3D(revealUI), 6500);
                 start3DAnimation(() => {
                     clearTimeout(fallback);
                     fadeOut3D(revealUI);
